@@ -9,9 +9,10 @@ const Schema = mongoose.Schema;
 //Mongoose that these fields should contain text data.
 const CampgroundSchema = new Schema({
     title: String,
-    price: String,
+    price: Number,
     description: String,
-    location: String
+    location: String,
+    image: String
 })
 
 //This creates a new Mongoose model named "campground" 
