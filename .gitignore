@@ -5,6 +5,12 @@ node_modules/
 logs/
 *.log
 
+# Dump files
+dump/
+
+# Test files
+test.js
+
 # Ignore package-lock.json if you don’t want to track it
 package-lock.json
 
