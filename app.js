@@ -1,4 +1,3 @@
-process.env.NODE_ENV = process.env.NODE_ENV || "production";
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -8,7 +7,9 @@ const methodOverride = require("method-override");
 const Campground = require("./models/campground");
 const campground = require("./models/campground");
 const atlasUrl = process.env.DATABASE_URL;
-const localUrl = process.env.LOCAL_URL;
+const localUrl = "mongodb://127.0.0.1:27017/Yelpcamp"
+const unsplashApi = process.env.Unsplash_API
+
 
 // const connectToDatabase = async () => {
 //     try {
@@ -32,41 +33,73 @@ const localUrl = process.env.LOCAL_URL;
 // // Call the function to connect to the database
 // connectToDatabase();
 
-
 const connectToDatabase = async () => {
-    console.log("DATABASE_URL:", process.env.DATABASE_URL);
-    const atlasUrl = process.env.DATABASE_URL; // MongoDB Atlas connection string
-    const localUrl = "mongodb://127.0.0.1:27017/yelpcamp"; // Local MongoDB connection string
+    console.log("NODE_ENV:", process.env.NODE_ENV); // This will print the value of NODE_ENV in the console
 
-    // Check if DATABASE_URL is missing or invalid
-    if (!atlasUrl || !atlasUrl.startsWith("mongodb")) {
-        console.error("Invalid or missing DATABASE_URL. Please check your environment variables.");
-        process.exit(1);
-    }
+    let dbUrl = process.env.NODE_ENV === "production" ? atlasUrl : localUrl;
+
+    console.log("Trying to connect to database with URL:", dbUrl); // Debugging line
 
     try {
-        await mongoose.connect(atlasUrl);
-        console.log("Connected to MongoDB Atlas");
-    } catch (atlasError) {
-        console.error("Failed to connect to MongoDB Atlas:", atlasError);
+        await mongoose.connect(dbUrl);
+        console.log(`✅ Connected to ${dbUrl.includes("mongodb.net") ? "Atlas" : "Local"} server`);
+    } catch (error) {
+        console.error(`❌ Failed to connect to ${dbUrl.includes("mongodb.net") ? "Atlas" : "Local"} server:`, error);
 
-        // If running locally, fall back to local MongoDB
-        if (process.env.NODE_ENV === "development") {
+        if (dbUrl === atlasUrl) {
+            console.log("🔄 Retrying with local database...");
             try {
                 await mongoose.connect(localUrl);
-                console.log("Connected to local MongoDB");
+                console.log("✅ Connected to Local server");
             } catch (localError) {
-                console.error("Failed to connect to local MongoDB:", localError);
+                console.error("❌ Failed to connect to Local database:", localError);
                 process.exit(1);
             }
         } else {
-            console.error("Cannot connect to MongoDB Atlas in production. Exiting...");
             process.exit(1);
         }
     }
 };
 
+// Call the function to connect to the database
 connectToDatabase();
+
+
+
+// const connectToDatabase = async () => {
+//     console.log("DATABASE_URL:", process.env.DATABASE_URL);
+//     const atlasUrl = process.env.DATABASE_URL; // MongoDB Atlas connection string
+//     const localUrl = "mongodb://127.0.0.1:27017/yelpcamp"; // Local MongoDB connection string
+
+//     // Check if DATABASE_URL is missing or invalid
+//     if (!atlasUrl || !atlasUrl.startsWith("mongodb")) {
+//         console.error("Invalid or missing DATABASE_URL. Please check your environment variables.");
+//         process.exit(1);
+//     }
+
+//     try {
+//         await mongoose.connect(atlasUrl);
+//         console.log("Connected to MongoDB Atlas");
+//     } catch (atlasError) {
+//         console.error("Failed to connect to MongoDB Atlas:", atlasError);
+
+//         // If running locally, fall back to local MongoDB
+//         if (process.env.NODE_ENV === "development") {
+//             try {
+//                 await mongoose.connect(localUrl);
+//                 console.log("Connected to local MongoDB");
+//             } catch (localError) {
+//                 console.error("Failed to connect to local MongoDB:", localError);
+//                 process.exit(1);
+//             }
+//         } else {
+//             console.error("Cannot connect to MongoDB Atlas in production. Exiting...");
+//             process.exit(1);
+//         }
+//     }
+// };
+
+// connectToDatabase();
 
 const app = express();
 
@@ -118,8 +151,15 @@ app.delete("/campgrounds/:id", async (req, res) => {
     res.redirect("/campgrounds");
 })
 
-const port = process.env.PORT || 3000;
-// Use Render's PORT or fallback to 3000 for local development
-app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+const PORT = process.env.PORT || 3000;
+
+console.log(`Using PORT: ${PORT}`);
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
+// const port = process.env.PORT || 3000;
+// // Use Render's PORT or fallback to 3000 for local development
+// app.listen(port, () => {
+//     console.log(`Listening on port ${port}`);
+// });
