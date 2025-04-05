@@ -1,8 +1,8 @@
 <% layout("layouts/boilerplate") %>
     <div class="row">
         <h1 class="text-center">Add New Campground</h1>
-        <div class="col-6 offset-3">
-            <form action="/campgrounds" method="post" novalidate class="validated-form">
+        <div class="col-md-6 offset-md-3">
+            <form action="/campgrounds" method="post" novalidate class="validated-form" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label class="form-label" for="title">Title</label>
                     <input class="form-control" type="text" id="title" name="campground[title]" required>
@@ -14,11 +14,6 @@
                 <div class="mb-3">
                     <label class="form-label" for="location">Location</label>
                     <input class="form-control" type="text" id="location" name="campground[location]" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label" for="image">Img Url</label>
-                    <input class="form-control" type="text" id="image" name="campground[image]" required>
                     <div class="valid-feedback">
                         Looks good!
                     </div>
@@ -37,9 +32,14 @@
                     <label class="form-label" for="price">Price</label>
                     <div class="input-group">
                         <span class="input-group-text" id="price-label">$</span>
-                        <input type="text" class="form-control" id="price" placeholder="0" aria-label="Price"
+                        <input type="text" class="form-control" id="price" placeholder="1" aria-label="Price"
                             aria-describedby="price-label" name="campground[price]" required>
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="image" class="form-label"></label>
+                    <input class="form-control" name="image" type="file" id="image" multiple>
                 </div>
 
                 <div class="mb-3">
@@ -49,23 +49,3 @@
             <a href="/campgrounds">Back</a>
         </div>
     </div>
-
-    <script>
-        (() => {
-            'use strict'
-
-            const forms = document.querySelectorAll('.validated-form')
-
-            // Loop over them and prevent submission
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-
-                    form.classList.add('was-validated')
-                }, false)
-            })
-        })()
-    </script>

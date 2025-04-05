@@ -1,165 +1,162 @@
+require("dotenv").config();
+const ExpressError = require("./utilities/ExpressError");
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
-require('dotenv').config();
 const ejsMate = require("ejs-mate");
+const session = require("express-session");
+const flash = require("connect-flash");
 const methodOverride = require("method-override");
-const Campground = require("./models/campground");
-const campground = require("./models/campground");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const User = require("./models/user");
+const helmet = require("helmet");
+const mongoSanitize = require('express-mongo-sanitize');
+const MongoStore = require("connect-mongo");
+
+const userRoutes = require("./routes/users");
+const campgroundsRoutes = require("./routes/campgrounds");
+const reviewsRoutes = require("./routes/reviews");
+
 const atlasUrl = process.env.DATABASE_URL;
-const localUrl = "mongodb://127.0.0.1:27017/Yelpcamp"
-const unsplashApi = process.env.Unsplash_API
+const unsplashApi = process.env.Unsplash_API;
 
-
-// const connectToDatabase = async () => {
-//     try {
-//         // Attempt to connect to the Atlas server
-//         await mongoose.connect(atlasUrl);
-//         console.log('Connected to Atlas server');
-//     } catch (atlasError) {
-//         console.error('Failed to connect to Atlas server:', atlasError);
-
-//         // If Atlas connection fails, attempt to connect to the local server
-//         try {
-//             await mongoose.connect(localUrl);
-//             console.log('Connected to local server');
-//         } catch (localError) {
-//             console.error('Failed to connect to local server:', localError);
-//             process.exit(1); // Exit the process if both connections fail
-//         }
-//     }
-// };
-
-// // Call the function to connect to the database
-// connectToDatabase();
-
-const connectToDatabase = async () => {
-    console.log("NODE_ENV:", process.env.NODE_ENV); // This will print the value of NODE_ENV in the console
-
-    let dbUrl = process.env.NODE_ENV === "production" ? atlasUrl : localUrl;
-
-    console.log("Trying to connect to database with URL:", dbUrl); // Debugging line
-
+const startServer = async () => {
     try {
-        await mongoose.connect(dbUrl);
-        console.log(`✅ Connected to ${dbUrl.includes("mongodb.net") ? "Atlas" : "Local"} server`);
-    } catch (error) {
-        console.error(`❌ Failed to connect to ${dbUrl.includes("mongodb.net") ? "Atlas" : "Local"} server:`, error);
+        // 1. Connect to MongoDB
+        await mongoose.connect(atlasUrl, {
+            serverSelectionTimeoutMS: 5000
+        });
+        console.log("✅ Connected to MongoDB Atlas");
 
-        if (dbUrl === atlasUrl) {
-            console.log("🔄 Retrying with local database...");
-            try {
-                await mongoose.connect(localUrl);
-                console.log("✅ Connected to Local server");
-            } catch (localError) {
-                console.error("❌ Failed to connect to Local database:", localError);
-                process.exit(1);
+        const app = express();
+
+        // 2. Configure session store
+        const secret = process.env.SECRET || "thisisnotabettersecret";
+        const sessionConfig = {
+            store: MongoStore.create({
+                client: mongoose.connection.getClient(),
+                touchAfter: 24 * 60 * 60
+            }),
+            name: "session",
+            secret,
+            resave: false,
+            saveUninitialized: true,
+            cookie: {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+                maxAge: 1000 * 60 * 60 * 24 * 7
             }
-        } else {
-            process.exit(1);
-        }
+        };
+
+        // 3. App configuration
+        app.engine("ejs", ejsMate);
+        app.set("view engine", "ejs");
+        app.set("views", path.join(__dirname, "views"));
+
+        app.use(express.urlencoded({ extended: true }));
+        app.use(methodOverride("_method"));
+        app.use(express.static(path.join(__dirname, "public")));
+        app.use(mongoSanitize({ replaceWith: '_' }));
+        app.use(session(sessionConfig));
+        app.use(flash());
+
+        // Security headers
+        const scriptSrcUrls = [
+            "https://stackpath.bootstrapcdn.com/",
+            "https://api.mapbox.com/",
+            "https://api.tiles.mapbox.com/",
+            "https://kit.fontawesome.com/",
+            "https://cdnjs.cloudflare.com/",
+            "https://cdn.jsdelivr.net/",
+        ];
+
+        const styleSrcUrls = [
+            "https://kit-free.fontawesome.com/",
+            "https://stackpath.bootstrapcdn.com/",
+            "https://cdn.jsdelivr.net/",
+            "https://api.mapbox.com/",
+            "https://api.tiles.mapbox.com/",
+            "https://fonts.googleapis.com/",
+            "https://use.fontawesome.com/"
+        ];
+
+        const connectSrcUrls = [
+            "https://api.mapbox.com/",
+            "https://a.tiles.mapbox.com/",
+            "https://b.tiles.mapbox.com/",
+            "https://events.tiles.mapbox.com/",
+            "https://events.mapbox.com/",
+        ];
+
+        const imgSrcUrls = [
+            "https://res.cloudinary.com/dq8yorgha/",
+            "https://images.unsplash.com/",
+            "https://api.mapbox.com/",
+            "https://a.tiles.mapbox.com/",
+            "https://b.tiles.mapbox.com/",
+        ];
+
+        app.use(helmet.contentSecurityPolicy({
+            directives: {
+                defaultSrc: [],
+                connectSrc: ["'self'", ...connectSrcUrls],
+                scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
+                styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+                workerSrc: ["'self'", "blob:"],
+                objectSrc: [],
+                imgSrc: ["'self'", "data:", "blob:", ...imgSrcUrls],
+                fontSrc: ["'self'"]
+            }
+        }));
+
+        // Passport configuration
+        app.use(passport.initialize());
+        app.use(passport.session());
+        passport.use(new LocalStrategy(User.authenticate()));
+        passport.serializeUser(User.serializeUser());
+        passport.deserializeUser(User.deserializeUser());
+
+        // Flash messages
+        app.use((req, res, next) => {
+            res.locals.activeUser = req.user;
+            res.locals.success = req.flash("success");
+            res.locals.error = req.flash("error");
+            next();
+        });
+
+        // Routes
+        app.use("/", userRoutes);
+        app.use("/campgrounds", campgroundsRoutes);
+        app.use("/campgrounds/:id/reviews", reviewsRoutes);
+
+        app.get("/", (req, res) => {
+            res.render("home");
+        });
+
+        // Error handling
+        app.all("*", (req, res, next) => {
+            next(new ExpressError("Page not found", 404));
+        });
+
+        app.use((err, req, res, next) => {
+            const { statusCode = 500 } = err;
+            if (!err.message) err.message = "Something went wrong!";
+            res.status(statusCode).render("error", { err });
+        });
+
+        // Start server
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error("💥 CRITICAL STARTUP ERROR:", error);
+        process.exit(1);
     }
 };
 
-// Call the function to connect to the database
-connectToDatabase();
-
-
-
-// const connectToDatabase = async () => {
-//     console.log("DATABASE_URL:", process.env.DATABASE_URL);
-//     const atlasUrl = process.env.DATABASE_URL; // MongoDB Atlas connection string
-//     const localUrl = "mongodb://127.0.0.1:27017/yelpcamp"; // Local MongoDB connection string
-
-//     // Check if DATABASE_URL is missing or invalid
-//     if (!atlasUrl || !atlasUrl.startsWith("mongodb")) {
-//         console.error("Invalid or missing DATABASE_URL. Please check your environment variables.");
-//         process.exit(1);
-//     }
-
-//     try {
-//         await mongoose.connect(atlasUrl);
-//         console.log("Connected to MongoDB Atlas");
-//     } catch (atlasError) {
-//         console.error("Failed to connect to MongoDB Atlas:", atlasError);
-
-//         // If running locally, fall back to local MongoDB
-//         if (process.env.NODE_ENV === "development") {
-//             try {
-//                 await mongoose.connect(localUrl);
-//                 console.log("Connected to local MongoDB");
-//             } catch (localError) {
-//                 console.error("Failed to connect to local MongoDB:", localError);
-//                 process.exit(1);
-//             }
-//         } else {
-//             console.error("Cannot connect to MongoDB Atlas in production. Exiting...");
-//             process.exit(1);
-//         }
-//     }
-// };
-
-// connectToDatabase();
-
-const app = express();
-
-app.engine("ejs", ejsMate)
-
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-app.use(express.urlencoded({ extended: true }));
-app.use(methodOverride("_method"));
-
-app.get("/", (req, res) => {
-    res.render("home")
-})
-
-app.get("/campgrounds", async (req, res) => {
-    const campgrounds = await Campground.find({});
-    res.render("campgrounds/index", { campgrounds })
-})
-
-app.get("/campgrounds/new", (req, res) => {
-    res.render("campgrounds/new");
-})
-app.post("/campgrounds", async (req, res) => {
-    const campground = new Campground(req.body.campground);
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`)
-})
-
-app.get("/campgrounds/:id", async (req, res) => {
-    const campground = await Campground.findById(req.params.id);
-    res.render("campgrounds/info", { campground })
-})
-
-app.get("/campgrounds/:id/edit", async (req, res) => {
-    const campground = await Campground.findById(req.params.id);
-    res.render("campgrounds/edit", { campground })
-})
-
-app.put("/campgrounds/:id", async (req, res) => {
-    const { id } = req.params;
-    const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground })
-    res.redirect(`/campgrounds/${campground._id}`)
-})
-
-app.delete("/campgrounds/:id", async (req, res) => {
-    const { id } = req.params;
-    await Campground.findByIdAndDelete(id);
-    res.redirect("/campgrounds");
-})
-
-const PORT = process.env.PORT || 3000;
-
-console.log(`Using PORT: ${PORT}`);
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-// const port = process.env.PORT || 3000;
-// // Use Render's PORT or fallback to 3000 for local development
-// app.listen(port, () => {
-//     console.log(`Listening on port ${port}`);
-// });
+// Start the application
+startServer();

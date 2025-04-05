@@ -1,7 +1,57 @@
-<% layout("layouts/boilerplate") %>
+<html lang="en">
 
-    <body>
-        <h1>Welcome to YelpCamp</h1>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YelpCamp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheets/home.css">
+</head>
 
-        <p>Construction is still going on!</p>
-    </body>
+<body class="d-flex text-center text-white bg-dark">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <header class="mb-auto">
+            <div>
+                <h3 class="float-md-start mb-0">YelpCamp</h3>
+                <nav class="nav nav-masthead justify-content-center float-md-right">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    <a class="nav-link" href="/campgrounds">Campgrounds</a>
+                    <% if(!activeUser) { %>
+                        <a class="nav-link" href="/login">Login</a>
+                        <a class="nav-link" href="/signUp">Signup</a>
+                        <!-- <a class="nav-link" href="/campgrounds">Campgrounds</a> -->
+                        <% }else { %>
+                            <a class="nav-link" href="/logout">Logout</a>
+                            <% } %>
+                </nav>
+
+            </div>
+        </header>
+        <main class="px-3">
+            <h1>YelpCamp</h1>
+            <p class="lead">Welcome to YelpCamp! <Br>Explore trusted campsite reviews, share your outdoor adventures,
+                and
+                connect with a community of campers who live for the wild. Pitch your tent, park your RV, or find hidden
+                gems—then let fellow explorers know how it went.</Br>Your journey starts here.</p>
+            <a href="/campgrounds" class="btn btn-lg btn-secondary font-weight-bold bg-white">View
+                Campgrounds</a>
+
+        </main>
+
+        <footer class="mt-auto text-white-50">
+            <p>&copy; 2025 YelpCamp</p>
+        </footer>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
+        integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
