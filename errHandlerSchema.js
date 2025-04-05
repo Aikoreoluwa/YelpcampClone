@@ -1,11 +1,11 @@
-const JoiBase = require("joi");
-const sanitizeHtml = require("sanitize-html");
+import JoiBase from 'joi';
+import sanitizeHtml from 'sanitize-html';
 
 const extension = (joi) => ({
-    type: "string",
+    type: 'string',
     base: joi.string(),
     messages: {
-        "string.escapeHTML": "{{#label}} must not include HTML!"
+        'string.escapeHTML': '{{#label}} must not include HTML!'
     },
     rules: {
         escapeHTML: {
@@ -15,7 +15,7 @@ const extension = (joi) => ({
                     allowedAttributes: {},
                 });
                 if (clean !== value) {
-                    return helpers.error("string.escapeHTML", { value });
+                    return helpers.error('string.escapeHTML', { value });
                 }
                 return clean;
             }
@@ -25,7 +25,7 @@ const extension = (joi) => ({
 
 const Joi = JoiBase.extend(extension);
 
-module.exports.serverSchema = Joi.object({
+export const serverSchema = Joi.object({
     campground: Joi.object({
         title: Joi.string().required().escapeHTML(),
         price: Joi.number().required().min(1),
@@ -35,7 +35,7 @@ module.exports.serverSchema = Joi.object({
     deleteImages: Joi.array()
 });
 
-module.exports.reviewSchema = Joi.object({
+export const reviewSchema = Joi.object({
     review: Joi.object({
         rating: Joi.number().required(),
         body: Joi.string().required().escapeHTML()

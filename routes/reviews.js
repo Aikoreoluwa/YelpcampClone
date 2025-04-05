@@ -1,14 +1,15 @@
-const express = require("express");
+import express from "express";
 const router = express.Router({ mergeParams: true });
 
-const catchAsync = require("../utilities/catchAsync");
-const ExpressError = require("../utilities/ExpressError");
+import catchAsync from "../utilities/catchAsync.js";
+import ExpressError from "../utilities/ExpressError.js";
 
-const Campground = require("../models/campground");
-const Review = require("../models/review");
-const reviews = require("../controllers/reviews");
-const { validateReview, isLoggedIn, isReviewCreator } = require("../middleware");
+import Campground from "../models/campground.js";
+import Review from "../models/review.js";
+import * as reviews from "../controllers/reviews.js";
+import { validateReview, isLoggedIn, isReviewCreator } from "../middleware.js";
 
 router.post("/", isLoggedIn, validateReview, catchAsync(reviews.createReview));
 router.delete("/:reviewId", isLoggedIn, isReviewCreator, catchAsync(reviews.deleteReview));
-module.exports = router;
+
+export default router;

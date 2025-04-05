@@ -1,8 +1,8 @@
-require('dotenv').config();
-const mongoose = require("mongoose");
-const cities = require("./cities");
-const { places, descriptors } = require("./seedHelpers");
-const Campground = require("../models/campground");
+import 'dotenv/config';
+import mongoose from "mongoose";
+import cities from "./cities.js";
+import { places, descriptors } from "./seedHelpers.js";
+import Campground from "../models/campground.js";
 
 mongoose.connect(process.env.DATABASE_URL)
 const db = mongoose.connection;
@@ -18,7 +18,7 @@ const seedDB = async () => {
         const random1000 = Math.floor(Math.random() * 1000);
         const price = Math.floor(Math.random() * 20) + 10;
         const camp = new Campground({
-            creator: new mongoose.Types.ObjectId('67d41cfb6ae51343627c2297'),
+            creator: new mongoose.Types.ObjectId('67f0e3f11979782c0a65b30b'),
             location: `${cities[random1000].city}, ${cities[random1000].state}`,
             title: `${sample(descriptors)} ${sample(places)}`,
             images: [

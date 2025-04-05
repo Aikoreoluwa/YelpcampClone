@@ -2,7 +2,7 @@
   "name": "yelpcamp",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "start": "node --experimental-require-module app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
